@@ -1,55 +1,9 @@
 #!/usr/bin/env python3
-# PYTHON_PREAMBLE_START_STANDARD:{{{
-
-# Christopher David Cotton (c)
-# http://www.cdcotton.com
-
-# modules needed for preamble
-import importlib
 import os
 from pathlib import Path
 import sys
 
-# Get full real filename
-__fullrealfile__ = os.path.abspath(__file__)
-
-# Function to get git directory containing this file
-def getprojectdir(filename):
-    curlevel = filename
-    while curlevel is not '/':
-        curlevel = os.path.dirname(curlevel)
-        if os.path.exists(curlevel + '/.git/'):
-            return(curlevel + '/')
-    return(None)
-
-# Directory of project
-__projectdir__ = Path(getprojectdir(__fullrealfile__))
-
-# Function to call functions from files by their absolute path.
-# Imports modules if they've not already been imported
-# First argument is filename, second is function name, third is dictionary containing loaded modules.
-modulesdict = {}
-def importattr(modulefilename, func, modulesdict = modulesdict):
-    # get modulefilename as string to prevent problems in <= python3.5 with pathlib -> os
-    modulefilename = str(modulefilename)
-    # if function in this file
-    if modulefilename == __fullrealfile__:
-        return(eval(func))
-    else:
-        # add file to moduledict if not there already
-        if modulefilename not in modulesdict:
-            # check filename exists
-            if not os.path.isfile(modulefilename):
-                raise Exception('Module not exists: ' + modulefilename + '. Function: ' + func + '. Filename called from: ' + __fullrealfile__ + '.')
-            # add directory to path
-            sys.path.append(os.path.dirname(modulefilename))
-            # actually add module to moduledict
-            modulesdict[modulefilename] = importlib.import_module(''.join(os.path.basename(modulefilename).split('.')[: -1]))
-
-        # get the actual function from the file and return it
-        return(getattr(modulesdict[modulefilename], func))
-
-# PYTHON_PREAMBLE_END:}}}
+__projectdir__ = Path(os.path.dirname(os.path.realpath(__file__)) + '/')
 
 import copy
 import datetime
@@ -63,10 +17,16 @@ import shutil
 import matplotlib.pyplot as plt
 
 # Defaults:{{{1
-starttime = importattr(__projectdir__ / Path('submodules/menu-sim-general/generalmenu_func.py'), 'starttime')
-SIGMA = importattr(__projectdir__ / Path('submodules/menu-sim-general/generalmenu_func.py'), 'SIGMA')
+sys.path.append(str(__projectdir__ / Path('submodules/menu-sim-general/')))
+from generalmenu_func import starttime
+starttime = starttime
+sys.path.append(str(__projectdir__ / Path('submodules/menu-sim-general/')))
+from generalmenu_func import SIGMA
+SIGMA = SIGMA
 numsectors_default = 9
-keydetails = importattr(__projectdir__ / Path('submodules/menu-sim-general/generalmenu_func.py'), 'keydetails')
+sys.path.append(str(__projectdir__ / Path('submodules/menu-sim-general/')))
+from generalmenu_func import keydetails
+keydetails = keydetails
 multikeydetails = ['weights', 'multicesrelprice', 'NUglobal', 'MCglobal', 'aggMCglobal', 'profitshareglobal', 'menushareglobal', 'profitshareglobalmenu']
 
 # Paramssdict:{{{1
@@ -132,7 +92,9 @@ def getmultiparamssdict(pmulti = None):
     # menu costs:}}}
 
     if 'weights' not in pmulti:
-        pmulti['weights'], pmulti['pricechangeprobs'] = importattr(__projectdir__ / Path('submodules/calvo-multisector-ss/manysector-ss_func.py'), 'ns_vectors')(numsectors = pmulti['numsectors'])
+        sys.path.append(str(__projectdir__ / Path('submodules/calvo-multisector-ss/')))
+        from manysector-ss_func import ns_vectors
+        pmulti['weights'], pmulti['pricechangeprobs'] = ns_vectors(numsectors = pmulti['numsectors'])
 
     # verify all same length
     if len(pmulti['weights']) != pmulti['numsectors']:
@@ -155,7 +117,9 @@ def multipartialeq_solve_p(pmulti = None, p = None):
     for i in range(pmulti['numsectors']):
         p2 = copy.deepcopy(p)
         p2['menu'] = pmulti['menus'][i]
-        p2 = importattr(__projectdir__ / Path('submodules/menu-sim-general/generalmenu_func.py'), 'partialeq_solve_p')(p2)
+        sys.path.append(str(__projectdir__ / Path('submodules/menu-sim-general/')))
+        from generalmenu_func import partialeq_solve_p
+        p2 = partialeq_solve_p(p2)
         pmulti['ps'].append(p2)
 
     pmulti['MCglobal'] = pmulti['ps'][0]['MC']
@@ -296,7 +260,9 @@ def solvemultimenu(pmulti = None, p = None, inflation = 0.02562, menuslow = None
         pricechangeprob = pmulti['pricechangeprobs'][i]
 
         # need to set a lower menulow to deal with high price change frequency cases
-        menu = importattr(__projectdir__ / Path('submodules/menu-sim-general/generalmenu_func.py'), 'solvemenu_givenMC')(p = copy.deepcopy(p), pricechangeprob = pricechangeprob, inflation = inflation, menulow = menuslow[i], menuhigh = menushigh[i], tolerance = tolerance)
+        sys.path.append(str(__projectdir__ / Path('submodules/menu-sim-general/')))
+        from generalmenu_func import solvemenu_givenMC
+        menu = solvemenu_givenMC(p = copy.deepcopy(p), pricechangeprob = pricechangeprob, inflation = inflation, menulow = menuslow[i], menuhigh = menushigh[i], tolerance = tolerance)
         menus.append(menu)
 
     if p['printinfosummary'] is True:
@@ -537,7 +503,9 @@ def savepistars_test(multiprocessthis = False):
 
 # Graphs:{{{1
 def graph_pistar_profitshare(show = False):
-    pistars, plist = importattr(__projectdir__ / Path('submodules/menu-sim-general/generalmenu_func.py'), 'loadsingleparamfolder')(__projectdir__ / Path('temp/pistars/'))
+    sys.path.append(str(__projectdir__ / Path('submodules/menu-sim-general/')))
+    from generalmenu_func import loadsingleparamfolder
+    pistars, plist = loadsingleparamfolder(__projectdir__ / Path('temp/pistars/'))
     profitshares = [100 * (1 - p['aggMCglobal']) for p in plist]
     profitsharesmenu = [100 * (1 - p['aggMCglobal'] - p['menushareglobal']) for p in plist]
 
@@ -569,7 +537,9 @@ def interpolatepistar(pistar):
     Read pistars from folder and then interpolate them to get estimates of MC, NU and menushare in that case
     pistar should be in range of pistars in folder
     """
-    pistars, retdictlist = importattr(__projectdir__ / Path('submodules/menu-sim-general/generalmenu_func.py'), 'loadsingleparamfolder')(__projectdir__ / Path('temp/pistars/'))
+    sys.path.append(str(__projectdir__ / Path('submodules/menu-sim-general/')))
+    from generalmenu_func import loadsingleparamfolder
+    pistars, retdictlist = loadsingleparamfolder(__projectdir__ / Path('temp/pistars/'))
 
     # switch to using MCglobal
     MClist = [retdict['MCglobal'] for retdict in retdictlist]
