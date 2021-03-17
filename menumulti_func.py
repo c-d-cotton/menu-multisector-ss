@@ -93,7 +93,7 @@ def getmultiparamssdict(pmulti = None):
 
     if 'weights' not in pmulti:
         sys.path.append(str(__projectdir__ / Path('submodules/calvo-multisector-ss/')))
-        from manysector-ss_func import ns_vectors
+        from manysector_ss_func import ns_vectors
         pmulti['weights'], pmulti['pricechangeprobs'] = ns_vectors(numsectors = pmulti['numsectors'])
 
     # verify all same length
